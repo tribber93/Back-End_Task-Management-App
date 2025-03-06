@@ -1,4 +1,4 @@
-from sqlalchemy import Column, Integer, String, Text, DateTime
+from sqlalchemy import UUID, Column, ForeignKey, Integer, String, Text, DateTime
 from sqlalchemy.sql import func
 from app.database.session import Base
 
@@ -10,6 +10,7 @@ class Task(Base):
     description = Column(Text, nullable=True)  # Deskripsi tugas
     deadline = Column(DateTime, nullable=True)  # Tanggal deadline
     status = Column(String(20), default="belum selesai")  # Status tugas
-    created_at = Column(DateTime, default=func.now())  # Timestamp saat dibuat
+    
+    user_id = Column(UUID(as_uuid=True), ForeignKey("users.id"), nullable=False)
+    created_at = Column(DateTime, default=func.now())
     updated_at = Column(DateTime, default=func.now(), onupdate=func.now())  # Update otomatis
-
