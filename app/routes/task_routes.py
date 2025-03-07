@@ -11,11 +11,12 @@ router = APIRouter()
 @router.get("/api/v1/task/get", response_model=list[TaskResponse])
 async def get_user_task(current_user: UserResponse = Depends(get_current_user)):
     try:
+        print("get")
         # Ambil data task hanya milik user yang sedang login
         response = supabase.table("tasks").select("*").eq("user_id", current_user.id).execute()
-
+        print(response)
         if not response.data:
-            return {"message": "Tidak ada task ditemukan", "data": []}
+            return []
 
         return response.data
     except Exception as e:
