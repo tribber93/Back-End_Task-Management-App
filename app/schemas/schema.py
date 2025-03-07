@@ -8,7 +8,7 @@ class TaskCreate(BaseModel):
     title: str
     description: str
     deadline: datetime
-    status: str  # "belum selesai", "sedang berjalan", "selesai"
+    status: str = "belum selesai" # "belum selesai", "sedang berjalan", "selesai"
     
 class TaskUpdate(BaseModel):
     title: Optional[str] = None
