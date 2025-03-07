@@ -14,9 +14,10 @@ class TaskUpdate(BaseModel):
     title: Optional[str] = None
     description: Optional[str] = None
     deadline: Optional[datetime] = None
-    status: Optional[str] = None
+    status: Optional[str] = "belum selesai"
     
 class TaskResponse(BaseModel):
+    id: uuid.UUID
     title: str
     description: Optional[str]
     deadline: Optional[datetime]

@@ -1,5 +1,6 @@
 from datetime import datetime
 from fastapi import APIRouter, HTTPException, Depends
+from sqlalchemy import func
 from app.database.supabase_client import supabase
 from app.schemas.schema import TaskCreate, TaskUpdate, TaskResponse
 from app.services.auth import get_current_user
@@ -8,7 +9,7 @@ from app.schemas.schema import UserResponse
 router = APIRouter()
 
 @router.get("/api/v1/task/get", response_model=list[TaskResponse])
-async def get_all_task(current_user: UserResponse = Depends(get_current_user)):
+async def get_user_task(current_user: UserResponse = Depends(get_current_user)):
     try:
         # Ambil data task hanya milik user yang sedang login
         response = supabase.table("tasks").select("*").eq("user_id", current_user.id).execute()
@@ -45,15 +46,21 @@ async def create_task(task: TaskCreate, current_user: UserResponse = Depends(get
 
 
 @router.put("/api/v1/task/update/{task_id}", response_model=TaskResponse)
-async def update_task(task_id: int, task: TaskUpdate, current_user: UserResponse = Depends(get_current_user)):
+async def update_task(task_id: str, task: TaskUpdate, current_user: UserResponse = Depends(get_current_user)):
     try:
         # Konversi data ke dictionary & hilangkan nilai None
-        update_data = {
-            k: (v.isoformat() if isinstance(v, datetime) else v) 
-            for k, v in task.model_dump().items() 
-            if v is not None
-        }
-        update_data["updated_at"] = datetime.utcnow().isoformat()
+        update_data = {}
+        
+        for k, v in task.model_dump().items():
+            if v is not None:
+                if isinstance(v, datetime):
+                    update_data[k] = v.isoformat()  # Ubah datetime ke ISO format
+                elif isinstance(v, (str, int)):  
+                    update_data[k] = v  # Biarkan str & int tetap
+                else:
+                    update_data[k] = str(v)  # Ubah tipe lain ke string
+                    
+        update_data["updated_at"] = str(func.now())
 
         if not update_data:
             raise HTTPException(status_code=400, detail="Tidak ada data yang diberikan untuk update")
@@ -70,7 +77,7 @@ async def update_task(task_id: int, task: TaskUpdate, current_user: UserResponse
 
 
 @router.delete("/api/v1/task/delete/{task_id}")
-async def delete_task(task_id: int, current_user: UserResponse = Depends(get_current_user)):
+async def delete_task(task_id: str, current_user: UserResponse = Depends(get_current_user)):
     try:
         # Hapus task berdasarkan `task_id` dan `user_id`
         response = supabase.table("tasks").delete().eq("id", task_id).eq("user_id", current_user.id).execute()
