@@ -6,7 +6,7 @@ import uuid
 
 class TaskCreate(BaseModel):
     title: str
-    description: str
+    description: Optional[str] = None
     deadline: datetime
     status: str = "belum selesai" # "belum selesai", "sedang berjalan", "selesai"
     

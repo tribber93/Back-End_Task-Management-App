@@ -8,15 +8,15 @@ router = APIRouter()
 @router.post("/api/v1/auth/signup", response_model=UserResponse)
 async def sign_up(user: UserSignUp):
     try:
-        # Cek apakah email sudah terdaftar di tabel `users`
-        existing_email = supabase.table("users").select("*").eq("email", user.email).execute()
-        if existing_email.data:
-            raise HTTPException(status_code=400, detail="Email sudah terdaftar")
-
         # Cek apakah username sudah terdaftar di tabel `users`
         existing_username = supabase.table("users").select("*").eq("username", user.username).execute()
         if existing_username.data:
             raise HTTPException(status_code=400, detail="Username sudah terdaftar")
+
+        # Cek apakah email sudah terdaftar di tabel `users`
+        existing_email = supabase.table("users").select("*").eq("email", user.email).execute()
+        if existing_email.data:
+            raise HTTPException(status_code=400, detail="Email sudah terdaftar")
         
         # Mendaftarkan user ke Supabase Auth dengan email
         response = supabase.auth.sign_up({
