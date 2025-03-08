@@ -1,5 +1,5 @@
 from fastapi import APIRouter, HTTPException, Depends
-from app.database.supabase_client import supabase
+from app.database.supabase_client import supabase, supabase_admin
 from app.schemas.schema import UserSignUp, UserSignIn, TokenResponse, UserResponse
 from app.services.auth import get_current_user
 
@@ -8,6 +8,16 @@ router = APIRouter()
 @router.post("/api/v1/auth/signup", response_model=UserResponse)
 async def sign_up(user: UserSignUp):
     try:
+        # Cek apakah email sudah terdaftar di tabel `users`
+        existing_email = supabase.table("users").select("*").eq("email", user.email).execute()
+        if existing_email.data:
+            raise HTTPException(status_code=400, detail="Email sudah terdaftar")
+
+        # Cek apakah username sudah terdaftar di tabel `users`
+        existing_username = supabase.table("users").select("*").eq("username", user.username).execute()
+        if existing_username.data:
+            raise HTTPException(status_code=400, detail="Username sudah terdaftar")
+        
         # Mendaftarkan user ke Supabase Auth dengan email
         response = supabase.auth.sign_up({
             "email": user.email,
@@ -15,11 +25,6 @@ async def sign_up(user: UserSignUp):
         })
 
         user_data = response.user  # Ambil data user
-
-        # Cek apakah user sudah ada di tabel `users`
-        existing_user = supabase.table("users").select("*").eq("id", user_data.id).execute()
-        if existing_user.data:
-            raise HTTPException(status_code=400, detail="User sudah terdaftar")
 
         # Simpan user ke tabel `users`
         supabase.table("users").insert({
@@ -61,5 +66,24 @@ def logout():
     try:
         response = supabase.auth.sign_out()
         return {"message": "Logout berhasil"}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+    
+@router.delete("/api/v1/auth/delete", response_model=dict)
+async def delete_current_user(current_user: UserResponse = Depends(get_current_user)):
+    try:
+        user_id = current_user.id  # Ambil ID user dari current_user
+
+        # Hapus user dari tabel `users`
+        delete_response = supabase.table("users").delete().eq("id", user_id).execute()
+
+        if not delete_response.data:
+            raise HTTPException(status_code=404, detail="User tidak ditemukan di tabel `users`")
+
+        # Hapus user dari Supabase Auth
+        supabase_admin.auth.admin.delete_user(user_id)
+
+        return {"message": "User berhasil dihapus"}
+
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
